@@ -2,7 +2,7 @@
 
 A local portfolio demo of a clicker game backend. Players earn virtual coins by spending energy, progress through levels, buy upgrade cards, claim daily rewards, and compete on a leaderboard.
 
-Two RabbitMQ workers process demo player registrations and leaderboard CSV exports. Both APIs return a job ID so the caller can check the result later.
+The demo uses a local Redis emulator (`fakeredis`) to limit rapid clicks and enforce the auto-click cooldown. RabbitMQ workers handle demo player registrations and leaderboard CSV exports in the background. Both job endpoints return a job ID so callers can check the result later.
 
 ## Run locally
 
@@ -25,7 +25,7 @@ Open [Swagger UI](http://127.0.0.1:8000/docs). Run **POST /demo/session**, copy 
 | POST /daily/claim | Claim today's reward |
 | GET /game/leaderboard | Compare synthetic players |
 
-The demo seeds two synthetic players and one card in its own SQLite database. Click throttling uses a local Redis emulator. The gameplay endpoints run without external credentials or services. This is a loopback-only demo: anyone with local access can obtain a token for the same synthetic player. Restarting the server invalidates demo tokens; gameplay state stays in the local demo database.
+The demo seeds two synthetic players and one card in its own SQLite database. The gameplay endpoints run without external credentials or services. This is a loopback-only demo: anyone with local access can obtain a token for the same synthetic player. Restarting the server invalidates demo tokens; gameplay state stays in the local demo database.
 
 The original project used PostgreSQL, Redis and SMS OTP. This local edition uses a synthetic session for gameplay and accepts username-only registrations to demonstrate queue processing. All currency and rewards are virtual.
 
