@@ -1,6 +1,6 @@
 from fakeredis import FakeRedis
 
-# Redis-compatible counters run locally in this demo; no external connection.
+# شمارندهٔ کلیک در نسخهٔ نمونه‌کار با شبیه‌ساز محلی Redis کار می‌کند.
 redis_client = FakeRedis(decode_responses=True)
 
 

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from database import SessionLocal
@@ -9,7 +9,7 @@ router = APIRouter(prefix="/leaderboard", tags=["Leaderboard"])
 
 
 # =========================
-# DB
+# نشست دیتابیس
 # =========================
 def get_db():
     db = SessionLocal()
@@ -20,7 +20,7 @@ def get_db():
 
 
 # =========================
-# LEVEL CALCULATOR
+# محاسبهٔ سطح بازیکن
 # =========================
 def calculate_level(coins: float):
     if coins >= 5000000:
@@ -45,12 +45,12 @@ def calculate_level(coins: float):
 
 
 # =========================
-# TOP 10 + CURRENT USER
+# ده بازیکن اول و رتبهٔ بازیکن فعلی
 # =========================
 @router.get("/")
 def get_leaderboard(
     db: Session = Depends(get_db),
-    user_id: int = Depends(get_current_user_from_token)
+    current_user: User = Depends(get_current_user_from_token)
 ):
     # 10 نفر اول
     top_users = (
@@ -69,12 +69,6 @@ def get_leaderboard(
             "level": calculate_level(user.coins),
             "coins": round(user.coins, 2)
         })
-
-    # کاربر فعلی
-    current_user = db.query(User).filter(User.id == user_id).first()
-
-    if not current_user:
-        raise HTTPException(status_code=404, detail="User not found")
 
     # رتبه واقعی
     better_users_count = (

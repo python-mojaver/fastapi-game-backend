@@ -1,9 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone
 from typing import Dict
+from uuid import UUID, uuid4
+
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi.responses import FileResponse
+from pika.exceptions import AMQPError
+from sqlalchemy.orm import Session
 
 from database import SessionLocal
+from leaderboard_data import leaderboard_rows
+from leaderboard_export import LeaderboardExport, enqueue_export, export_path
 from models import User
 from routes.auth import get_current_user_from_token
 from redis_client import get_redis
@@ -356,7 +362,7 @@ def collect_profit(
 
 
 # ============================================================
-# LEADERBOARD
+# جدول رتبه‌بندی
 # ============================================================
 @router.get("/leaderboard")
 def get_leaderboard(
@@ -364,12 +370,7 @@ def get_leaderboard(
     current_user: User = Depends(get_current_user_from_token),
     limit: int = 100
 ):
-    users = db.query(User).filter(User.is_active == True).order_by(User.coins.desc()).limit(limit).all()
-    result = [
-        {"rank": i, "username": u.username, "coins": round(u.coins, 2),
-         "level": u.level, "is_current_user": u.id == current_user.id}
-        for i, u in enumerate(users, 1)
-    ]
+    result = leaderboard_rows(db, current_user.id, limit)
     user_rank = db.query(User).filter(
         User.coins > current_user.coins, User.is_active == True
     ).count() + 1
@@ -378,3 +379,32 @@ def get_leaderboard(
         "current_user_rank": user_rank,
         "current_user_coins": round(current_user.coins, 2)
     }
+
+
+@router.post("/leaderboard/exports", status_code=202, tags=["Leaderboard exports"])
+def request_leaderboard_export(
+    request: Request,
+    response: Response,
+    current_user: User = Depends(get_current_user_from_token),
+):
+    job = LeaderboardExport(job_id=uuid4(), user_id=current_user.id)
+    try:
+        enqueue_export(job)
+    except AMQPError as error:
+        raise HTTPException(503, "Could not confirm the export request with RabbitMQ") from error
+
+    download_url = request.url_for("download_leaderboard_export", job_id=str(job.job_id)).path
+    # پاسخ ۲۰۲ یعنی درخواست وارد صف شده و فایل در آدرس اعلام‌شده قابل پیگیری است.
+    response.headers["Location"] = download_url
+    return {"job_id": job.job_id, "download_url": download_url}
+
+
+@router.get("/leaderboard/exports/{job_id}", tags=["Leaderboard exports"])
+def download_leaderboard_export(
+    job_id: UUID,
+    current_user: User = Depends(get_current_user_from_token),
+):
+    path = export_path(LeaderboardExport(job_id=job_id, user_id=current_user.id))
+    if not path.is_file():
+        raise HTTPException(404, "Export is not ready or does not exist")
+    return FileResponse(path, media_type="text/csv", filename="leaderboard.csv")

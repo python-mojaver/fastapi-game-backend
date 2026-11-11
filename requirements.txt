@@ -3,3 +3,4 @@ uvicorn==0.54.0
 SQLAlchemy==2.1.6
 PyJWT==2.15.1
 fakeredis==2.40.0
+pika==1.4.4

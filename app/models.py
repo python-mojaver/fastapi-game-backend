@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 
 
 # ==============================
-#  USER
+# بازیکن
 # ==============================
 
 class User(Base):
@@ -32,12 +32,12 @@ class User(Base):
     level = Column(Integer, default=1)
     xp = Column(Integer, default=0)
 
-    # ===== REFERRAL SYSTEM =====
+    # دعوت بازیکن
     referral_count = Column(Integer, default=0)
     referral_bonus_claimed = Column(Boolean, default=False)
     
     # =========================
-    # Daily Reward
+    # جایزهٔ روزانه
     # =========================
 
     daily_reward_day = Column(Integer, default=1)
@@ -60,7 +60,7 @@ class User(Base):
     game_start_date = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     # =========================
-    # PROFIT SYSTEM
+    # درآمد بازی
     # =========================
 
     # آیا پروفیت فعال شده؟
@@ -81,6 +81,15 @@ class User(Base):
 
     # مجموع کل پروفیت دریافت شده
     total_profit_claimed = Column(BigInteger, default=0)    
+
+class RegistrationJob(Base):
+    __tablename__ = "registration_jobs"
+
+    id = Column(String(36), primary_key=True)
+    username = Column(String(32), nullable=False)
+    status = Column(String(24), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
 
 class Card(Base):
     __tablename__ = "cards"
@@ -110,4 +119,3 @@ class UserCard(Base):
  
     level = Column(Integer, default=1)                 # سطح فعلی کارت
     purchased_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
- 
